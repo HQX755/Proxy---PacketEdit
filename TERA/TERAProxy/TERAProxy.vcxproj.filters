@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ClientData.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Controller.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Emulator.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Proxy.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Serverlist.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClientData.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Container.h">
+      <Filter>Header\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="Controller.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Crypt.h">
+      <Filter>Header\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="Emulator.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Opcodes.h">
+      <Filter>Header\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="OpcodeStrings.h">
+      <Filter>Header\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="Packets.h">
+      <Filter>Header\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="Proxy.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketUtils.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header">
+      <UniqueIdentifier>{71987811-5a28-4173-80d2-4c2140cde6cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Src">
+      <UniqueIdentifier>{2e361944-898f-4187-9c26-937178f1ba7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header\Packets">
+      <UniqueIdentifier>{bbf802ea-9610-402b-a58c-e82b1326f027}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

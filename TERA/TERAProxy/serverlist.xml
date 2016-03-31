@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<serverlist>
+  <server>
+    <id>13</id>
+    <ip>79.110.94.213</ip>
+    <port>7803</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(DE) - Hasmina">
+      <![CDATA[(DE) - Hasmina]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>de</language>
+  </server>
+  <server>
+    <id>19</id>
+    <ip>79.110.94.219</ip>
+    <port>7809</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(DE) - Kaidun">
+      <![CDATA[(DE) - Kaidun]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>de</language>
+  </server>
+  <server>
+    <id>14</id>
+    <ip>79.110.94.214</ip>
+    <port>7804</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(FR) - Elinu">
+      <![CDATA[(FR) - Elinu]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="2">Mittel</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>fr</language>
+  </server>
+  <server>
+    <id>22</id>
+    <ip>79.110.94.217</ip>
+    <port>7812</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(FR) - Akasha">
+      <![CDATA[(FR) - Akasha]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>fr</language>
+  </server>
+  <server>
+    <id>16</id>
+    <ip>79.110.94.216</ip>
+    <port>7806</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(EN) - Veritas">
+      <![CDATA[(EN) - Veritas]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>en</language>
+  </server>
+  <server>
+    <id>21</id>
+    <ip>79.110.94.218</ip>
+    <port>7811</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(EN) - Zenobia">
+      <![CDATA[(EN) - Zenobia]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>en</language>
+  </server>
+  <server>
+    <id>12</id>
+    <ip>79.110.94.212</ip>
+    <port>7802</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(EN) - Fraya">
+      <![CDATA[(EN) - Fraya]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>en</language>
+  </server>
+  <server>
+    <id>18</id>
+    <ip>79.110.94.218</ip>
+    <port>7808</port>
+    <category sort="1">PVE</category>
+    <name raw_name="(EN) - Arcadia">
+      <![CDATA[(EN) - Arcadia]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>en</language>
+  </server>
+  <server>
+    <id>25</id>
+    <ip>79.110.94.215</ip>
+    <port>7805</port>
+    <category sort="2">PVP</category>
+    <name raw_name="(INT) - Icaruna">
+      <![CDATA[(INT) - Icaruna]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="4">Hoch</open>
+    <permission_mask>0x00000001</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Der Server ist bereits voll. Bitte verwende einen der anderen Server.]]>
+    </popup>
+    <language>en</language>
+  </server>
+  <server>
+    <id>11</id>
+    <ip>79.110.94.211</ip>
+    <port>7801</port>
+    <category sort="2">PVP</category>
+    <name raw_name="(INT) - Killian">
+      <![CDATA[(INT) - Killian]]>
+    </name>
+    <crowdness sort="1">Nein</crowdness>
+    <open sort="3">Hoch</open>
+    <permission_mask>0x00000000</permission_mask>
+    <server_stat>0x00000000</server_stat>
+    <popup>
+      <![CDATA[Das Betreten des Servers ist zurzeit nicht möglich.
+]]>
+    </popup>
+    <language>en</language>
+  </server>
+</serverlist>
