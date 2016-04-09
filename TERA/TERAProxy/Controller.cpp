@@ -27,7 +27,15 @@ CNpc::CNpc()
 
 CNpc::CNpc(uint8_t *pData, uint32_t size)
 {
+	PACKET(Packets::SSpawnNPCPacket::SPacket, pData, packet);
 
+	m_Object.dir	= TO_FLOAT_DIR(packet.dir);
+	m_Object.id		= packet.id;
+	m_Object.type	= packet.type;
+	m_Object.x		= packet.x;
+	m_Object.y		= packet.y;
+	m_Object.z		= packet.z;
+	m_Object.dead	= false;
 }
 
 CNpc::~CNpc()
@@ -41,16 +49,17 @@ CPlayer::CPlayer()
 
 CPlayer::CPlayer(uint8_t *pData, uint32_t size)
 {
-	Packets::SSpawnPlayerPacket p(pData, size);
+	PACKET(Packets::SSpawnPlayerPacket::SPacket, pData, packet);
 
-	m_Object.dir	= p.packet.dir / 180;
-	m_Object.id		= p.packet.id;
-	m_Object.type	= p.packet.type;
-	m_Object.x		= p.packet.x;
-	m_Object.y		= p.packet.y;
-	m_Object.z		= p.packet.z;
+	m_Object.dir	= TO_FLOAT_DIR(packet.dir);
+	m_Object.id		= packet.id;
+	m_Object.type	= packet.type;
+	m_Object.x		= packet.x;
+	m_Object.y		= packet.y;
+	m_Object.z		= packet.z;
+	m_Object.dead	= packet.dead == 0 ? false : true;
 	
-	m_Player.state = p.packet.state;
+	m_Player.state = packet.state;
 }
 
 CPlayer::~CPlayer()

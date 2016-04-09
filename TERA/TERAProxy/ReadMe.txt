@@ -1,13 +1,14 @@
-﻿<h1>Tera - Packet Manipulator</h1>
+﻿Tera - Packet Manipulator
 
-<h2>Functionality</h2>:
-- Serverlist emulator (Needed?)
+Functionality:
+- Serverlist emulator (Only needed when no http)
 - Proxy between client and server
 
-<h2>Features:</h2>
+Features:
 - Packet editor
 - Packet crypto
 - Packet structs (Unfinished)
 - ...
 
 Crypto from 1725 serverfiles.
+Packets partly from russian source. 

@@ -48,8 +48,8 @@ CEmulator::CEmulator(boost::asio::io_service & Service, const char * szIp, const
 
 CEmulator::~CEmulator()
 {
-	m_Socket.cancel();
-	m_Server.cancel();
+	//m_Socket.cancel();
+	//m_Server.cancel();
 
 	m_Socket.close();
 	m_Server.close();

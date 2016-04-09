@@ -19,7 +19,7 @@
     <ClCompile Include="Serverlist.cpp">
       <Filter>Src</Filter>
     </ClCompile>
-    <ClCompile Include="stdafx.cpp">
+    <ClCompile Include="Commands.cpp">
       <Filter>Src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -63,6 +63,72 @@
     <ClInclude Include="targetver.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="PacketStructs\Server\SpawnNPC.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\SpawnUser.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\SpawnUserProjectile.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\CreatureChangeHP.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\DespawnNPC.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\DespawnProjectile.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\DespawnUser.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\PlayerStatsUpdate.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\SpawnMe.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Client\StartProjectile.h">
+      <Filter>Header\Packets\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Client\Move.h">
+      <Filter>Header\Packets\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Client\CanLockOnTarget.h">
+      <Filter>Header\Packets\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Client\StartSkill.h">
+      <Filter>Header\Packets\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\UserLocation.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\NPCLocation.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketHandler.h">
+      <Filter>Header\Packets</Filter>
+    </ClInclude>
+    <ClInclude Include="EndUserProjectile.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="Commands.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Client\Chat.h">
+      <Filter>Header\Packets\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Client\Teleport.h">
+      <Filter>Header\Packets\Client</Filter>
+    </ClInclude>
+    <ClInclude Include="CustomPacketHandler.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="PacketStructs\Server\NPCRotate.h">
+      <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -76,6 +142,12 @@
     </Filter>
     <Filter Include="Header\Packets">
       <UniqueIdentifier>{bbf802ea-9610-402b-a58c-e82b1326f027}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header\Packets\Client">
+      <UniqueIdentifier>{6012ce53-cd2e-4504-b257-bbd5989af13b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header\Packets\Server">
+      <UniqueIdentifier>{86eb4775-bfa6-4575-97a3-17c81e98c34d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

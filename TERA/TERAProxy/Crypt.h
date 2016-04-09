@@ -406,7 +406,7 @@ public:
 		memcpy(m_LastKEY, m_KEY, sizeof(CKey) * 3);
 	}
 
-	inline void ApplyCryptor(uint8_t *_1, uint32_t size, bool save = true)
+	void ApplyCryptor(uint8_t *_1, uint32_t size, bool save = true)
 	{
 		if (save)
 		{
@@ -421,7 +421,7 @@ public:
 		{
 			for (int j = 0; j < pre; j++)
 			{
-				*(uint8_t*)(_1 + j) ^= (uint8_t)(m_ChangeData >> (8 * (4 - m_ChangeLen + j)));
+				_1[j] ^= (uint8_t)(m_ChangeData >> (8 * (4 - m_ChangeLen + j)));
 			}
 
 			m_ChangeLen -= pre;
@@ -450,10 +450,10 @@ public:
 					k->Pos2		= (k->Pos2 + 1) % k->Size;
 				}
 
-				*(uint8_t*)(_1 + i)		^= (uint8_t)(k->Sum);
-				*(uint8_t*)(_1 + i + 1) ^= (uint8_t)(k->Sum >> 8);
-				*(uint8_t*)(_1 + i + 2) ^= (uint8_t)(k->Sum >> 16);
-				*(uint8_t*)(_1 + i + 3) ^= (uint8_t)(k->Sum >> 24);
+				_1[i]		^= (uint8_t)(k->Sum);
+				_1[i + 1]	^= (uint8_t)(k->Sum >> 8);
+				_1[i + 2]	^= (uint8_t)(k->Sum >> 16);
+				_1[i + 3]	^= (uint8_t)(k->Sum >> 24);
 			}
 		}
 
@@ -488,7 +488,106 @@ public:
 
 			for (int j = 0; j < remain; j++)
 			{
-				*(uint8_t*)(_1 + real_size + pre - remain + j) ^= (uint8_t)(m_ChangeData >> (j * 8));
+				_1[real_size + pre - remain + j] ^= (uint8_t)(m_ChangeData >> (j * 8));
+			}
+
+			m_ChangeLen = 4 - remain;
+		}
+	}
+
+	inline void ApplyCryptor(uint8_t *_1, uint8_t *_2, uint32_t size, bool save = true)
+	{
+		if (save)
+		{
+			SaveData();
+		}
+
+		uint32_t real_size = size;
+		uint32_t s = size;
+		uint32_t pre = (s < m_ChangeLen) ? s : m_ChangeLen;
+
+		if (pre != 0)
+		{
+			for (int j = 0; j < pre; j++)
+			{
+				_1[j] = _2[j] ^ (uint8_t)(m_ChangeData >> (8 * (4 - m_ChangeLen + j)));
+			}
+
+			m_ChangeLen -= pre;
+			real_size -= pre;
+		}
+
+		for (int i = pre; i < s - 3; i += 4)
+		{
+			uint32_t result = m_KEY[0].m_KEY & m_KEY[1].m_KEY | m_KEY[2].m_KEY & (m_KEY[0].m_KEY | m_KEY[1].m_KEY);
+
+			for (int j = 0; j < 3; j++)
+			{
+				CKey *k = &m_KEY[j];
+
+				if (result == k->m_KEY)
+				{
+					uint32_t t1, t2, t3;
+
+					t1 = k->Buffer[k->Pos1];
+					t2 = k->Buffer[k->Pos2];
+					t3 = (t1 <= t2) ? t1 : t2;
+
+					k->Sum		= t1 + t2;
+					k->m_KEY	= (t3 > k->Sum) ? 1 : 0;
+					k->Pos1		= (k->Pos1 + 1) % k->Size;
+					k->Pos2		= (k->Pos2 + 1) % k->Size;
+				}
+
+				if (j == 0)
+				{
+					_1[i]		= _2[i]		^ (uint8_t)(k->Sum);
+					_1[i + 1]	= _2[i + 1] ^ (uint8_t)(k->Sum >> 8);
+					_1[i + 2]	= _2[i + 2] ^ (uint8_t)(k->Sum >> 16);
+					_1[i + 3]	= _2[i + 3] ^ (uint8_t)(k->Sum >> 24);
+				}
+				else
+				{
+					_1[i]		^= (uint8_t)(k->Sum);
+					_1[i + 1]	^= (uint8_t)(k->Sum >> 8);
+					_1[i + 2]	^= (uint8_t)(k->Sum >> 16);
+					_1[i + 3]	^= (uint8_t)(k->Sum >> 24);
+				}
+			}
+		}
+
+		uint32_t remain = real_size & 3;
+
+		if (remain != 0)
+		{
+			uint32_t result = m_KEY[0].m_KEY & m_KEY[1].m_KEY | m_KEY[2].m_KEY & (m_KEY[0].m_KEY | m_KEY[1].m_KEY);
+
+			m_ChangeData = 0;
+
+			for (int j = 0; j < 3; j++)
+			{
+				CKey *k = &m_KEY[j];
+
+				if (result == k->m_KEY)
+				{
+					uint32_t t1, t2, t3;
+
+					t1 = k->Buffer[k->Pos1];
+					t2 = k->Buffer[k->Pos2];
+					t3 = (t1 <= t2) ? t1 : t2;
+
+					k->Sum		= t1 + t2;
+					k->m_KEY	= (t3 > k->Sum) ? 1 : 0;
+					k->Pos1		= (k->Pos1 + 1) % k->Size;
+					k->Pos2		= (k->Pos2 + 1) % k->Size;
+				}
+
+				m_ChangeData ^= (int32_t)k->Sum;
+			}
+
+			for (int j = 0; j < remain; j++)
+			{
+				_1[real_size + pre - remain + j] = _1[real_size + pre - remain + j] ^ (uint8_t)(m_ChangeData >> (j * 8));
 			}
 
 			m_ChangeLen = 4 - remain;
@@ -559,6 +658,10 @@ public:
 
 	~CryptManager()
 	{
+		delete Encrypt;
+		delete EncryptLayer;
+		delete Decrypt;
+		delete DecryptLayer;
 	}
 
 	void Initialize()
@@ -651,14 +754,24 @@ public:
 		*DecryptLayer = *Decrypt;
 	}
 
-	inline void ClientEncrypt(uint8_t data[], uint32_t size)
+	inline void ClientEncrypt(uint8_t data[], uint32_t size, bool save = true)
 	{
-		DecryptLayer->ApplyCryptor(data, size);
+		DecryptLayer->ApplyCryptor(data, size, save);
 	}
 
-	inline void ServerEncrypt(uint8_t data[], uint32_t size, bool save = false)
+	inline void ClientEncrypt(uint8_t data[], uint32_t size, uint8_t result[], bool save = true)
 	{
-		EncryptLayer->ApplyCryptor(data, size);
+		DecryptLayer->ApplyCryptor(result, data, size, save);
+	}
+
+	inline void ServerEncrypt(uint8_t data[], uint32_t size, bool save = true)
+	{
+		EncryptLayer->ApplyCryptor(data, size, save);
+	}
+
+	inline void ServerEncrypt(uint8_t data[], uint32_t size, uint8_t result[], bool save = true)
+	{
+		EncryptLayer->ApplyCryptor(result, data, size, save);
 	}
 
 	inline void DoEncrypt(uint8_t data[], uint32_t size)

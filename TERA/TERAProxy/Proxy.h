@@ -6,14 +6,33 @@
 #include <boost/thread.hpp>
 #include <boost/atomic.hpp>
 
-#include "stdafx.h"
-
+#include "targetver.h"
 #include "Opcodes.h"
 #include "OpcodeStrings.h"
+#include "PacketHandler.h"
 
 #include "Utils.h"
 #include "Crypt.h"
 #include "ClientData.h"
+#include "Commands.h"
+
+#define BOOST_ASIO_ENABLE_CANCELIO
+
+class CProxy;
+class CCommandManager
+{
+private:
+	CProxy *m_Proxy;
+
+public:
+	CCommandManager(CProxy* proxy)
+	{
+		m_Proxy = proxy;
+	}
+
+	void Teleport(float x, float y, float z, float dir);
+	void TeleportTo(float x, float y, float z, float dir);
+};
 
 class CProxy : boost::noncopyable
 {
@@ -35,13 +54,18 @@ private:
 	boost::thread* m_ServerRecvThread;
 	boost::thread* m_ClientRecvThread;
 
+	boost::mutex m_ServerRecvMutex;
+	boost::mutex m_ClientRecvMutex;
+
 	std::string m_strServerIp;		///< Ip of server.
 	std::string m_strServerPort;	///< Port of server.
 
-	boost::atomics::atomic_bool m_bShutdown;
+	boost::atomic_bool m_bShutdown;
 
 	CryptManager	m_CryptManager;	///< Crypto class.
 	CClientManager	m_ClientManager; ///< Holds data that the client also does.
+	CPacketHandler*	m_PacketHandler;
+	CCommandManager m_CommandManager;
 
 public:
 	/*
@@ -59,6 +83,43 @@ public:
 	*/
 	void Shutdown();
 
+	/*
+	*	Set custom packet handler.
+	*/
+	void SetPacketHandler(CPacketHandler* pHandler);
+
+	/*
+	*	Lock client mutex.
+	*/
+	void Lock();
+	void LockClientRecv();
+
+	/*
+	*	Unlock client mutex.
+	*/
+	void Unlock();
+	void UnlockClientRecv();
+
+	/*
+	*	Return pointer to client.
+	*/
+	CClientManager* GetClient();
+
+	/*
+	*	Return pointer to command manager.
+	*/
+	CCommandManager* GetCommandManager();
+
+	/*
+	*	Send multiple packets to server.
+	*/
+	bool SERVER_SendPacket(uint8_t *pData, uint32_t size, int32_t count);
+
+	/*
+	*	Send multiple packets to client.
+	*/
+	bool CLIENT_SendPacket(uint8_t *pData, uint32_t size, int32_t count);
+
 private:
 	~CProxy();
 
@@ -75,12 +136,12 @@ private:
 	/*
 	*	Sends a packet to the server.
 	*/
-	void SERVER_SendPacket(uint8_t *pData, uint32_t size);
+	inline bool SERVER_SendPacket(uint8_t *pData, uint32_t size);
 
 	/*
 	*	Sends a packet to the client.
 	*/
-	void CLIENT_SendPacket(uint8_t *pData, uint32_t size);
+	inline bool CLIENT_SendPacket(uint8_t *pData, uint32_t size);
 
 	/*
 	*	Handles incomming server packets and sends them to the client.

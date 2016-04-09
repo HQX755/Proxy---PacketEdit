@@ -35,14 +35,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -72,7 +72,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>$(ProjectName)5</TargetName>
+    <TargetName>$(ProjectName)6</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -92,6 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <StructMemberAlignment>1Byte</StructMemberAlignment>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -104,7 +105,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_WINSOCK_DEPRECATED_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
@@ -115,12 +116,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>Create</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_SCL_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,13 +153,35 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClientData.h" />
+    <ClInclude Include="Commands.h" />
     <ClInclude Include="Container.h" />
     <ClInclude Include="Controller.h" />
     <ClInclude Include="Crypt.h" />
+    <ClInclude Include="CustomPacketHandler.h" />
     <ClInclude Include="Emulator.h" />
+    <ClInclude Include="EndUserProjectile.h" />
     <ClInclude Include="Opcodes.h" />
     <ClInclude Include="OpcodeStrings.h" />
+    <ClInclude Include="PacketHandler.h" />
     <ClInclude Include="Packets.h" />
+    <ClInclude Include="PacketStructs\Client\CanLockOnTarget.h" />
+    <ClInclude Include="PacketStructs\Client\Chat.h" />
+    <ClInclude Include="PacketStructs\Client\Move.h" />
+    <ClInclude Include="PacketStructs\Client\StartProjectile.h" />
+    <ClInclude Include="PacketStructs\Client\StartSkill.h" />
+    <ClInclude Include="PacketStructs\Client\Teleport.h" />
+    <ClInclude Include="PacketStructs\Server\CreatureChangeHP.h" />
+    <ClInclude Include="PacketStructs\Server\DespawnNPC.h" />
+    <ClInclude Include="PacketStructs\Server\DespawnProjectile.h" />
+    <ClInclude Include="PacketStructs\Server\DespawnUser.h" />
+    <ClInclude Include="PacketStructs\Server\NPCLocation.h" />
+    <ClInclude Include="PacketStructs\Server\NPCRotate.h" />
+    <ClInclude Include="PacketStructs\Server\UserLocation.h" />
+    <ClInclude Include="PacketStructs\Server\PlayerStatsUpdate.h" />
+    <ClInclude Include="PacketStructs\Server\SpawnMe.h" />
+    <ClInclude Include="PacketStructs\Server\SpawnNPC.h" />
+    <ClInclude Include="PacketStructs\Server\SpawnUser.h" />
+    <ClInclude Include="PacketStructs\Server\SpawnUserProjectile.h" />
     <ClInclude Include="Proxy.h" />
     <ClInclude Include="SocketUtils.h" />
     <ClInclude Include="stdafx.h" />
@@ -166,17 +190,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ClientData.cpp" />
+    <ClCompile Include="Commands.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="Emulator.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Proxy.cpp" />
     <ClCompile Include="Serverlist.cpp" />
-    <ClCompile Include="stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

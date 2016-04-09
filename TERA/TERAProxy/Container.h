@@ -18,12 +18,12 @@ public:
 		return reinterpret_cast<T>(m_vAllocations.data());
 	}
 
-	size_t GetContainerSize()
+	uint32_t GetContainerSize()
 	{
 		return m_vAllocations.size();
 	}
 
-	size_t GetOffset(size_t offset)
+	uint32_t GetOffset(uint32_t offset)
 	{
 		if (m_vSizes.size() < offset)
 		{
@@ -38,7 +38,7 @@ public:
 		return m_vSizes[offset - 1];
 	}
 
-	size_t GetSizeAt(size_t offset)
+	uint32_t GetSizeAt(uint32_t offset)
 	{
 		if (m_vSizes.size() < offset)
 		{
@@ -64,7 +64,7 @@ public:
 		Insert(obj);
 	}
 
-	CPacketData(size_t size, size_t reserved = 0)
+	CPacketData(uint32_t size, uint32_t reserved = 0)
 	{
 		m_vSizes.push_back(size);
 		{
@@ -77,9 +77,10 @@ public:
 				m_vAllocations.reserve(reserved);
 			}
 		}
+		m_vAllocations.assign(size, 0);
 	}
 
-	CPacketData(uint8_t* pData, size_t size)
+	CPacketData(uint8_t* pData, uint32_t size)
 	{
 		m_vSizes.push_back(size);
 		{
@@ -98,7 +99,7 @@ public:
 	}
 
 	template<class T = uint8_t>
-	T* operator[](size_t offset)
+	T* operator[](uint32_t offset)
 	{
 		if (m_vAllocations.empty())
 		{
@@ -126,7 +127,7 @@ public:
 			reinterpret_cast<uint8_t*>(&val) + sizeof(T));
 	}
 
-	void Insert(unsigned char* begin, unsigned char *end)
+	void Insert(uint8_t* begin, uint8_t *end)
 	{
 		if (begin == end)
 		{
@@ -148,7 +149,7 @@ public:
 	}
 
 	template<class T>
-	void Get(size_t offset, T& ref) 
+	void Get(uint32_t offset, T& ref)
 	{
 		if (m_vSizes.size() <= offset)
 		{
@@ -165,7 +166,7 @@ public:
 		}
 	}
 
-	void Remove(size_t offset) 
+	void Remove(uint32_t offset)
 	{
 		if (m_vSizes.size() < offset)
 		{
@@ -184,7 +185,7 @@ public:
 
 		if (m_vSizes.size() != offset + 1)
 		{
-			std::for_each(m_vSizes.begin() + offset, m_vSizes.end(), [&](size_t& size)
+			std::for_each(m_vSizes.begin() + offset, m_vSizes.end(), [&](uint32_t& size)
 			{
 				size -= m_vSizes[offset];
 			});
@@ -302,7 +303,8 @@ public:
 	{
 		boost::function<Pred> function(p);
 
-		unsigned int dist = 0;
+		uint32_t dist = 0;
+
 		for (auto it = m_vAllocations.begin(); it != m_vAllocations.end(); )
 		{
 			while (dist != m_vSizes.size() - 1)
@@ -332,7 +334,7 @@ public:
 	}
 
 	template<class T, class Iter = std::vector<unsigned char>::iterator>
-	static T* Find(const T& data, size_t size, Iter begin, Iter end)
+	static T* Find(const T& data, uint32_t size, Iter begin, Iter end)
 	{
 		for (auto it = begin; it != end; ++it)
 		{
@@ -346,7 +348,7 @@ public:
 	}
 
 	template<class T>
-	T* Find(const T& data, size_t size)
+	T* Find(const T& data, uint32_t size)
 	{
 		for (auto it = m_vAllocations.begin(); it != m_vAllocations.end(); ++it)
 		{
@@ -359,5 +361,11 @@ public:
 		return nullptr;
 	}
 };
+
+#define IMPLEMENT_PACKET(x, y) \
+inline void operator=(const x& other) { memcpy(&y, &other.y, sizeof(y)); } \
+x(uint8_t *data, uint32_t size) : CPacketData(data, size), y(*GetContainerData<SPacket*>()) {} \
+x() : CPacketData(sizeof(x)), y(*GetContainerData<SPacket*>()) {} \
+struct SPacket
 
 #endif

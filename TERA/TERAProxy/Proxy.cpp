@@ -1,6 +1,88 @@
 #include "stdafx.h"
 #include "Proxy.h"
 
+CProxy::CProxy(boost::asio::io_service & service, const char * szPort) :
+	m_Acceptor(service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), atoi(szPort))),
+	m_Service(service),
+	m_Server(service),
+	m_Client(service),
+	m_bShutdown(false),
+	m_vServerData(UINT16_MAX),
+	m_vClientData(UINT16_MAX),
+	m_ServerRecvThread(NULL),
+	m_ClientRecvThread(NULL),
+	m_CommandManager(this),
+	m_PacketHandler(new CPacketHandler)
+{
+	m_CryptManager.Initialize();
+}
+
+void CProxy::AsyncWaitForClientConnection(const char * szServer, const char * szServerPort)
+{
+	m_strServerIp = szServer;
+	m_strServerPort = szServerPort;
+
+	m_Acceptor.async_accept(m_Client, boost::bind(&CProxy::ConnectToServer, this, boost::asio::placeholders::error));
+}
+
+void CProxy::Shutdown()
+{
+	if (m_bShutdown)
+	{
+		return;
+	}
+
+	m_bShutdown = true;
+
+	DebugPrint("[Proxy] Shutting down.\n");
+
+	if (m_Client.is_open())
+	{
+		m_Client.cancel(m_LastError);
+
+		if (m_LastError)
+		{
+			DebugPrint("[Proxy] Error when canceling client socket. %s\n", m_LastError.message().c_str());
+		}
+
+		m_Client.close(m_LastError);
+
+		if (m_LastError)
+		{
+			DebugPrint("[Proxy] Error when closing client socket. %s\n", m_LastError.message().c_str());
+		}
+	}
+
+	if (m_Server.is_open())
+	{
+		m_Server.cancel(m_LastError);
+
+		if (m_LastError)
+		{
+			DebugPrint("[Proxy] Error when canceling server socket. %s\n", m_LastError.message().c_str());
+		}
+
+		m_Server.close(m_LastError);
+
+		if (m_LastError)
+		{
+			DebugPrint("[Proxy] Error when closing server socket. %s\n", m_LastError.message().c_str());
+		}
+	}
+
+	delete this;
+}
+
+void CProxy::SetPacketHandler(CPacketHandler* pHandler)
+{
+	if (m_PacketHandler)
+	{
+		delete m_PacketHandler;
+	}
+
+	m_PacketHandler = pHandler;
+}
+
 void CProxy::ConnectToServer(const boost::system::error_code & ec)
 {
 	if (ec)
@@ -66,7 +148,7 @@ void CProxy::WaitForHandshake()
 	}
 }
 
-inline void CProxy::SERVER_SendPacket(uint8_t * pData, uint32_t size)
+inline bool CProxy::SERVER_SendPacket(uint8_t * pData, uint32_t size)
 {
 	DebugPrint("[Proxy -> Server] Sent new packet: %d\n", size);
 
@@ -76,12 +158,47 @@ inline void CProxy::SERVER_SendPacket(uint8_t * pData, uint32_t size)
 	{
 		DebugPrint("[Proxy -> Server] Error when sending packet. %s\n", m_LastError.message().c_str());
 
-		//Shutdown after failure.
+		// Shutdown after failure.
 		Shutdown();
+
+		return false;
 	}
+
+	return true;
 }
 
-inline void CProxy::CLIENT_SendPacket(uint8_t * pData, uint32_t size)
+bool CProxy::SERVER_SendPacket(uint8_t * pData, uint32_t size, int32_t count)
+{
+	if (count < 1)
+	{
+		return false;
+	}
+	
+	if (count == 1)
+	{
+		m_CryptManager.ClientEncrypt(pData, size, false);
+		{
+			return SERVER_SendPacket(pData, size);
+		}
+	}
+	else
+	{
+		for (int32_t i = 0; i < count; ++i)
+		{
+			m_CryptManager.ClientEncrypt(pData, size, m_vClientData.data(), false);
+			{
+				if (!SERVER_SendPacket(m_vClientData.data(), size))
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+inline bool CProxy::CLIENT_SendPacket(uint8_t * pData, uint32_t size)
 {
 	DebugPrint("[Proxy -> Client] Sent new packet: %d\n", size);
 
@@ -90,64 +207,268 @@ inline void CProxy::CLIENT_SendPacket(uint8_t * pData, uint32_t size)
 	if (m_LastError)
 	{
 		DebugPrint("[Proxy -> Client] Error when sending packet. %s\n", m_LastError.message().c_str());
-
-		//Shutdown after failure.
 		Shutdown();
+
+		return false;
 	}
+
+	return true;
 }
 
-inline void CProxy::ParseServerPacket(uint8_t * pData, uint32_t size)
+bool CProxy::CLIENT_SendPacket(uint8_t * pData, uint32_t size, int32_t count)
 {
+	if (count < 1)
+	{
+		return false;
+	}
+
+	if (count == 1)
+	{
+		m_CryptManager.ServerEncrypt(pData, size, false);
+		{
+			return CLIENT_SendPacket(pData, size);
+		}
+	}
+	else
+	{
+		uint8_t *pSaved = CopyHeap(pData, size);
+
+		for (int32_t i = 0; i < count; ++i)
+		{
+			m_CryptManager.ServerEncrypt(pSaved, size, pData, false);
+			{
+				if (!CLIENT_SendPacket(pData, size))
+				{
+					break;
+				}
+			}
+		}
+
+		delete[] pSaved;
+	}
+
+	return true;
+}
+
+void CProxy::ParseServerPacket(uint8_t * pData, uint32_t size)
+{ 
+	boost::mutex::scoped_lock lock(m_ServerRecvMutex);
+
 	uint16_t wHeader = _WORD(pData, 2);
+
+	uint8_t* pSendData = pData;
+	uint32_t iSendSize = size;
+	int32_t iSendCount = 1;
 
 	switch (wHeader)
 	{
 	case S_SPAWN_NPC: ///< Sighting of an npc.
-		m_ClientManager.AddNPC(pData, size);
+
+		if ((iSendCount = m_PacketHandler->OnRecvNPCSpawn(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.AddNPC(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.AddNPC(pData, size);
+		}
 
 		break;
 
 	case S_SPAWN_ME: ///< Happens after login.
-		m_ClientManager.SpawnMainController(pData, size);
+
+
+		if ((iSendCount = m_PacketHandler->OnRecvSpawnMe(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.OnMainControllerSpawn(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.OnMainControllerSpawn(pData, size);
+		}
+
+		break;
+
+	case S_PLAYER_STAT_UPDATE:
+
+		if ((iSendCount = m_PacketHandler->OnRecvPlayerStatsUpdate(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.OnPlayerStatsUpdate(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.OnPlayerStatsUpdate(pData, size);
+		}
 
 		break;
 
 	case S_DESPAWN_NPC: ///< When a npc vanishes / gets out of range.
-		m_ClientManager.RemoveNPC(pData, size);
+		
+		if ((iSendCount = m_PacketHandler->OnRecvNPCDespawn(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.RemoveNPC(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.RemoveNPC(pData, size);
+		}
 
 		break;
 
 	case S_SPAWN_USER: ///< Sighting of a player.
-		m_ClientManager.AddPC(pData, size);
+		
+		if ((iSendCount = m_PacketHandler->OnRecvUserSpawn(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.AddPC(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.AddPC(pData, size);
+		}
 
 		break;
 
 	case S_DESPAWN_USER: ///< When a player vanishes / gets out of range.
-		m_ClientManager.RemovePC(pData, size);
+		
+		if ((iSendCount = m_PacketHandler->OnRecvUserDespawn(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.RemovePC(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.RemovePC(pData, size);
+		}
 
 		break;
 
-	case S_USER_LOCATION:
-	case S_USER_LOCATION_IN_ACTION:
-		m_ClientManager.OnPCMove(pData, size);
+	case S_START_USER_PROJECTILE: ///< User Projectile fired.
+		
+		if ((iSendCount = m_PacketHandler->OnRecvUserProjectile(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.AddUserProjectile(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.AddUserProjectile(pData, size);
+		}
 
 		break;
 
-	case S_NPC_LOCATION:
-		m_ClientManager.OnNPCMove(pData, size);
+	case S_DESPAWN_PROJECTILE: ///< Projectile hit / vanish.
+		
+		if ((iSendCount = m_PacketHandler->OnRecvDespawnProjectile(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.RemoveProjectile(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.RemoveProjectile(pData, size);
+		}
+		
+		break;
+
+	case S_END_USER_PROJECTILE: ///< User projectile hit / vanish.
+
+		if ((iSendCount = m_PacketHandler->OnRecvDespawnUserProjectile(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.RemoveUserProjectile(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.RemoveUserProjectile(pData, size);
+		}
+
+		break;
+
+	case S_USER_LOCATION: ///< Player move.
+	case S_USER_LOCATION_IN_ACTION: ///< Player move while using skill.
+
+		if ((iSendCount = m_PacketHandler->OnRecvUserLocation(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.OnPCMove(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.OnPCMove(pData, size);
+		}
+
+		break;
+
+	case S_NPC_LOCATION: ///< Npc move.
+		
+		if ((iSendCount = m_PacketHandler->OnRecvNPCLocation(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.OnNPCMove(pSendData, iSendSize);
+		}
+
+		if (iSendCount == 0)
+		{
+			m_ClientManager.OnNPCMove(pData, size);
+		}
+
+		break;
+
+	case S_EACH_SKILL_RESULT: ///< Skill result.
+
+		iSendCount = m_PacketHandler->OnRecvEachSkillResult(this, pData, size, &pSendData, &iSendSize);
+
+		break;
+
+	case S_BOSS_GAGE_INFO: ///< .
+
+		iSendCount = m_PacketHandler->OnRecvBossGageInfo(this, pData, size, &pSendData, &iSendSize);
+
+		break;
+
+	case S_BOSS_GAGE_STACK_INFO: ///< .
+
+		iSendCount = m_PacketHandler->OnRecvBossGageStackInfo(this, pData, size, &pSendData, &iSendSize);
+
+		break;
+
+	case S_HIT_COMBO: ///< Hit count.
+
+		iSendCount = m_PacketHandler->OnRecvHitCombo(this, pData, size, &pSendData, &iSendSize);
+
+		break;
+
+	case S_CREATURE_CHANGE_HP: ///< NPC HP.
+
+		if ((iSendCount = m_PacketHandler->OnRecvCreatureHP(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.OnNPCChangeHP(pData, size);
+		}
 
 		break;
 	}
 
-	m_CryptManager.ServerEncrypt(pData, size);
+	CLIENT_SendPacket(pSendData, iSendSize, iSendCount);
+
+	if (pSendData != pData)
 	{
-		CLIENT_SendPacket(pData, size);
+		delete[] pSendData;
 	}
 }
 
-inline void CProxy::ParseClientPacket(uint8_t * pData, uint32_t size)
+void CProxy::ParseClientPacket(uint8_t * pData, uint32_t size)
 {
+	boost::mutex::scoped_lock lock(m_ClientRecvMutex);
+
 	uint16_t wHeader = _WORD(pData, 2);
+
+	uint8_t* pSendData = pData;
+	uint32_t iSendSize = size;
+	int32_t iSendCount = 1;
 
 	switch (wHeader)
 	{
@@ -155,11 +476,23 @@ inline void CProxy::ParseClientPacket(uint8_t * pData, uint32_t size)
 		m_ClientManager.OnMainControllerMove(pData, size);
 
 		break;
+
+	case C_HIT_USER_PROJECTILE:
+		iSendCount = m_PacketHandler->OnSendHitProjectile(this, pData, size, &pSendData, &iSendSize);
+
+		break;
+
+	case C_CHAT:
+		iSendCount = m_PacketHandler->OnSendChat(this, pData, size, &pSendData, &iSendSize);
+
+		break;
 	}
 
-	m_CryptManager.ClientEncrypt(pData, size);
+	SERVER_SendPacket(pSendData, iSendSize, iSendCount);
+
+	if (pSendData != pData)
 	{
-		SERVER_SendPacket(pData, size);
+		delete[] pSendData;
 	}
 }
 
@@ -168,8 +501,6 @@ inline void CProxy::SERVER_CallbackRead(const boost::system::error_code & ec, ui
 	if (ec)
 	{
 		DebugPrint("[Client <- Proxy <- Server] Error on read. %s\n", ec.message().c_str());
-
-		//Shutdown after failure.
 		Shutdown();
 
 		return;
@@ -179,10 +510,12 @@ inline void CProxy::SERVER_CallbackRead(const boost::system::error_code & ec, ui
 		// First two packets will have the key mat.
 		if (!m_CryptManager.HasServerKey())
 		{
+			// Apply key.
 			m_CryptManager.SVSetKeyData(m_vServerData.data());
 
 			DebugPrint("[Proxy] Applied Server Key.\n");
 
+			// Send key to client.
 			CLIENT_SendPacket(m_vServerData.data(), trans);
 		}
 		else
@@ -239,7 +572,7 @@ inline bool CProxy::SERVER_CheckRecvError(bool bShutdown)
 	{
 		DebugPrint("[Proxy] Error on recv. %s\n", m_LastServerRecvError.message().c_str());
 
-		if (bShutdown)
+		if (bShutdown && !m_bShutdown)
 		{
 			// Shutdown after failure.
 			m_Service.post(boost::bind(&CProxy::Shutdown, this));
@@ -257,7 +590,7 @@ inline bool CProxy::CLIENT_CheckRecvError(bool bShutdown)
 	{
 		DebugPrint("[Proxy] Error on client recv. %s\n", m_LastClientRecvError.message().c_str());
 
-		if (bShutdown)
+		if (bShutdown && !m_bShutdown)
 		{
 			// Shutdown after failure.
 			m_Service.post(boost::bind(&CProxy::Shutdown, this));
@@ -345,10 +678,10 @@ inline void CProxy::SERVER_ThreadRecv()
 			return;
 		}
 
-		// Setup key
+		// Setup key.
 		m_CryptManager.SVSetKeyData(m_vServerData.data());
 
-		// Send key
+		// Send key.
 		CLIENT_SendPacket(m_vServerData.data(), 128);
 	}
 
@@ -388,7 +721,7 @@ inline void CProxy::SERVER_ThreadRecv()
 			}
 		}
 
-		// Make the crypto key update. Decrypt and analyze the data.
+		// Make the crypto key update. Decrypt and parse the data.
 		m_CryptManager.DoEncrypt(m_vServerData.data(), trans);
 		{
 			DebugPrint("[Client <- Proxy <- Server] New packet: %d\t%s\n", trans, GetHeaderByKey(_WORD(m_vServerData.data(), 2)));
@@ -443,7 +776,7 @@ inline void CProxy::CLIENT_CallbackRead(const boost::system::error_code & ec, ui
 	{
 		DebugPrint("[Server <- Proxy <- Client] Error when reading data. %s\n", ec.message().c_str());
 
-		//Shutdown after failure.
+		// Shutdown after failure.
 		Shutdown();
 
 		return;
@@ -452,10 +785,12 @@ inline void CProxy::CLIENT_CallbackRead(const boost::system::error_code & ec, ui
 	{
 		if (!m_CryptManager.HasClientKey())
 		{
+			// Apply key.
 			m_CryptManager.CLSetKeyData(m_vClientData.data());
 
 			DebugPrint("[Proxy] Applied Client key.\n");
 
+			// Send key to server.
 			SERVER_SendPacket(m_vClientData.data(), trans);
 		}
 		else
@@ -481,7 +816,7 @@ inline void CProxy::CLIENT_CallbackRead(const boost::system::error_code & ec, ui
 					{
 						DebugPrint("[Client <- Proxy <- Server] Error on read. %s\n", m_LastError.message().c_str());
 
-						//Shutdown after failure.
+						// Shutdown after failure.
 						Shutdown();
 
 						return;
@@ -493,7 +828,7 @@ inline void CProxy::CLIENT_CallbackRead(const boost::system::error_code & ec, ui
 			{
 				DebugPrint("[Client -> Proxy -> Server] New packet. %d\t%s\n", trans, GetHeaderByKey(_WORD(m_vClientData.data(), 2)));
 
-				// Analyze the packet and send it to server.
+				// Parse the packet and send it to server.
 				ParseClientPacket(m_vClientData.data(), trans);
 			}
 		}
@@ -514,6 +849,49 @@ inline void CProxy::CLIENT_Read()
 		boost::asio::async_read(m_Client, boost::asio::buffer(m_vClientData.data(), 4),
 			boost::bind(&CProxy::CLIENT_CallbackRead, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 	}
+}
+
+void CProxy::Lock()
+{
+	m_ServerRecvMutex.lock();
+}
+
+void CProxy::LockClientRecv()
+{
+	m_ClientRecvMutex.lock();
+}
+
+/*
+*	Unlock client mutex;
+*/
+
+void CProxy::Unlock()
+{
+	m_ServerRecvMutex.unlock();
+}
+
+void CProxy::UnlockClientRecv()
+{
+	m_ClientRecvMutex.unlock();
+}
+
+
+/*
+*	Return pointer to client;
+*/
+
+CClientManager * CProxy::GetClient()
+{
+	return &m_ClientManager;
+}
+
+/*
+*	Returns pointer to command manager.
+*/
+
+CCommandManager * CProxy::GetCommandManager()
+{
+	return &m_CommandManager;
 }
 
 CProxy::~CProxy()
@@ -572,74 +950,10 @@ CProxy::~CProxy()
 		delete m_ClientRecvThread;
 		m_ClientRecvThread = NULL;
 	}
-}
 
-CProxy::CProxy(boost::asio::io_service & service, const char * szPort) :
-	m_Acceptor(service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), atoi(szPort))),
-	m_Service(service),
-	m_Server(service),
-	m_Client(service),
-	m_bShutdown(false),
-	m_vServerData(UINT16_MAX),
-	m_vClientData(UINT16_MAX),
-	m_ServerRecvThread(NULL),
-	m_ClientRecvThread(NULL)
-{
-	m_CryptManager.Initialize();
-}
-
-void CProxy::AsyncWaitForClientConnection(const char * szServer, const char * szServerPort)
-{
-	m_strServerIp = szServer;
-	m_strServerPort = szServerPort;
-
-	m_Acceptor.async_accept(m_Client, boost::bind(&CProxy::ConnectToServer, this, boost::asio::placeholders::error));
-}
-
-void CProxy::Shutdown()
-{
-	if (m_bShutdown)
+	if (m_PacketHandler)
 	{
-		return;
+		delete m_PacketHandler;
+		m_PacketHandler = NULL;
 	}
-
-	m_bShutdown = true;
-
-	DebugPrint("[Proxy] Shutting down.\n");
-
-	if (m_Client.is_open())
-	{
-		m_Client.cancel(m_LastError);
-
-		if (m_LastError)
-		{
-			DebugPrint("[Proxy] Error when canceling client socket. %s\n", m_LastError.message().c_str());
-		}
-
-		m_Client.close(m_LastError);
-
-		if (m_LastError)
-		{
-			DebugPrint("[Proxy] Error when closing client socket. %s\n", m_LastError.message().c_str());
-		}
-	}
-
-	if (m_Server.is_open())
-	{
-		m_Server.cancel(m_LastError);
-
-		if (m_LastError)
-		{
-			DebugPrint("[Proxy] Error when canceling server socket. %s\n", m_LastError.message().c_str());
-		}
-
-		m_Server.close(m_LastError);
-
-		if (m_LastError)
-		{
-			DebugPrint("[Proxy] Error when closing server socket. %s\n", m_LastError.message().c_str());
-		}
-	}
-
-	delete this;
 }
