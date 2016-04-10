@@ -250,6 +250,18 @@ void CClientManager::OnMainControllerSpawn(uint8_t * pData, uint32_t size)
 	}
 }
 
+void CClientManager::OnPlayerStatsUpdate(uint8_t * pData, uint32_t size)
+{
+	PACKET(Packets::TSPlayerStatsUpdatePacket::SPacket, pData, packet);
+	{
+		if (m_Player)
+		{
+			m_Player->SetHp(packet.hp);
+			m_Player->SetMp(packet.mp);
+		}
+	}
+}
+
 void CClientManager::OnMainControllerMove(uint8_t * pData, uint32_t size)
 {
 	if (m_Player)

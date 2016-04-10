@@ -22,6 +22,9 @@
     <ClCompile Include="Commands.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="ProxyManager.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClientData.h">
@@ -128,6 +131,9 @@
     </ClInclude>
     <ClInclude Include="PacketStructs\Server\NPCRotate.h">
       <Filter>Header\Packets\Server</Filter>
+    </ClInclude>
+    <ClInclude Include="ProxyManager.h">
+      <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

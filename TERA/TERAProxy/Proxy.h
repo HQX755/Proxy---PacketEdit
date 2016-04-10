@@ -64,8 +64,10 @@ private:
 
 	CryptManager	m_CryptManager;	///< Crypto class.
 	CClientManager	m_ClientManager; ///< Holds data that the client also does.
-	CPacketHandler*	m_PacketHandler;
-	CCommandManager m_CommandManager;
+	CPacketHandler*	m_PacketHandler; ///< On send / recv callback.
+	CCommandManager m_CommandManager; ///< Custom commands.
+
+	boost::promise<void>* m_Callback;
 
 public:
 	/*
@@ -76,7 +78,7 @@ public:
 	/*
 	*	Wait for client connection. Will connect to server on new connection.
 	*/
-	void AsyncWaitForClientConnection(const char * szServer, const char * szServerPort);
+	void AsyncWaitForClientConnection(const char * szServer, const char * szServerPort, boost::promise<void>* pPromise = NULL);
 
 	/*
 	*	Shutdown everything (On delete).

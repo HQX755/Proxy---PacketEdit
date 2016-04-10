@@ -17,7 +17,7 @@ namespace Packets
 {
 	typedef struct SCanLockTargetPacket : public CPacketData
 	{
-		struct SPacket
+		IMPLEMENT_PACKET(SCanLockTargetPacket, packet)
 		{
 			uint16_t size;
 			uint16_t header;

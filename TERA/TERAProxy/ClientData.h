@@ -58,6 +58,7 @@ public:
 
 	void OnMainControllerMove(uint8_t *pData, uint32_t size);
 	void OnMainControllerSpawn(uint8_t *pData, uint32_t size);
+	void OnPlayerStatsUpdate(uint8_t *pData, uint32_t size);
 
 	void OnPCMove(uint8_t *pData, uint32_t size);
 	void OnNPCMove(uint8_t *pData, uint32_t size);

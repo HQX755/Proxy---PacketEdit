@@ -30,6 +30,7 @@
 #include "PacketStructs\Client\Chat.h"
 
 #define PACKET(x, y, z) x z = *reinterpret_cast<x*>(y)
+#define PACKET_REF(x, y, z) x& z = *reinterpret_cast<x*>(y)
 
 #pragma pack(pop)
 

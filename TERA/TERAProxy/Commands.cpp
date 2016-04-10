@@ -10,7 +10,8 @@ void CCommandManager::Teleport(float x, float y, float z, float dir)
 		return;
 	}
 
-	m_Proxy->LockClientRecv();
+	// Check if client recv thread first.
+	//m_Proxy->LockClientRecv();
 	{
 		Packets::TCTeleportPacket packet;
 
@@ -23,7 +24,7 @@ void CCommandManager::Teleport(float x, float y, float z, float dir)
 
 		m_Proxy->CLIENT_SendPacket(packet.GetContainerData(), packet.GetContainerSize(), 1);
 	}
-	m_Proxy->UnlockClientRecv();
+	//m_Proxy->UnlockClientRecv();
 }
 
 void CCommandManager::TeleportTo(float x, float y, float z, float dir)

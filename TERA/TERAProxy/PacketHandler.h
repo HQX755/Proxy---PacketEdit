@@ -7,6 +7,9 @@ class CProxy;
 
 /*
 *	Returns amount of times to send packet.
+*	n > 0 : Parse result. Send n times.
+*	n = 0 : Parse packet. Don't send.
+*	n < 0 : Don't parse packet. Don't send.
 */
 #define PACKET_HANDLER(x) virtual inline int32_t x(CProxy *proxy, uint8_t* data, uint32_t size, uint8_t** result, uint32_t* result_size)
 
@@ -44,6 +47,21 @@ public:
 	}
 
 	PACKET_HANDLER(OnRecvSpawnMe)
+	{
+		return 1;
+	}
+
+	PACKET_HANDLER(OnRecvUserProjectile)
+	{
+		return 1;
+	}
+
+	PACKET_HANDLER(OnRecvDespawnProjectile)
+	{
+		return 1;
+	}
+
+	PACKET_HANDLER(OnRecvDespawnUserProjectile)
 	{
 		return 1;
 	}
@@ -88,7 +106,32 @@ public:
 		return 1;
 	}
 
+	PACKET_HANDLER(OnRecvActionStage)
+	{
+		return 1;
+	}
+
+	PACKET_HANDLER(OnRecvActionStageEnd)
+	{
+		return 1;
+	}
+
 	PACKET_HANDLER(OnSendChat)
+	{
+		return 1;
+	}
+
+	PACKET_HANDLER(OnRecvPlayerStatsUpdate)
+	{
+		return 1;
+	}
+	
+	PACKET_HANDLER(OnRecvShowHP)
+	{
+		return 1;
+	}
+
+	PACKET_HANDLER(OnSendPlayerLocation)
 	{
 		return 1;
 	}

@@ -21,33 +21,34 @@ namespace Packets
 		{
 			uint16_t size;
 			uint16_t header;
+			uint8_t unk[12];
 			int32_t hp;
 			int32_t mp;
-			int32_t unk_0;
-			int32_t power_factor;
-			int32_t defense_factor;
-			int16_t impact_factor;
-			int16_t balance_factor;
-			int16_t run_speed;
-			int16_t attack_speed;
-			float crit_rate;
-			float crit_resistance;
-			float crit_factor;
+			int32_t power_factor_base;
+			int32_t defense_factor_base;
+			int32_t impact_factor_base;
+			int32_t balance_factor_factor_base;
+			int16_t attack_speed_base;
+			int16_t run_speed_base;
+			int16_t speed_mod;
+			float crit_rate_base;
+			float crit_resistance_base;
+			float crit_factor_base;
 			int32_t base_attack_min;
 			int32_t base_attack_max;
 			int32_t base_defense;
-			int16_t base_impact;
-			int16_t base_balance;
+			int32_t base_impact;
+			int32_t base_balance;
 			float weak_resist;
 			float damage_resist;
 			float stun_resist;
 
 			int32_t power_factor_add;
 			int32_t defense_factor_add;
-			int16_t impact_factor_add;
-			int16_t balance_factor_add;
-			int16_t run_speed_add;
-			int16_t attack_speed_add;
+			int32_t impact_factor_add;
+			int32_t balance_factor_add;
+			int32_t run_speed_add;
+			int32_t attack_speed_add;
 			float crit_rate_add;
 			float crit_resistance_add;
 			float crit_factor_add;
@@ -61,6 +62,8 @@ namespace Packets
 			float weak_resist_add;
 			float damage_resist_add;
 			float stun_resist_add;
+
+			int32_t run_speed_combat;
 			
 			int16_t level;
 			int16_t stance;

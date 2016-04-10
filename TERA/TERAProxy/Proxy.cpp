@@ -1,5 +1,7 @@
 #include "stdafx.h"
+
 #include "Proxy.h"
+#include "ProxyManager.h"
 
 CProxy::CProxy(boost::asio::io_service & service, const char * szPort) :
 	m_Acceptor(service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), atoi(szPort))),
@@ -12,14 +14,17 @@ CProxy::CProxy(boost::asio::io_service & service, const char * szPort) :
 	m_ServerRecvThread(NULL),
 	m_ClientRecvThread(NULL),
 	m_CommandManager(this),
+	m_Callback(NULL),
 	m_PacketHandler(new CPacketHandler)
 {
 	m_CryptManager.Initialize();
 }
 
-void CProxy::AsyncWaitForClientConnection(const char * szServer, const char * szServerPort)
+void CProxy::AsyncWaitForClientConnection(const char * szServer, const char * szServerPort, boost::promise<void>* pPromise)
 {
-	m_strServerIp = szServer;
+	m_Callback = pPromise;
+
+	m_strServerIp	= szServer;
 	m_strServerPort = szServerPort;
 
 	m_Acceptor.async_accept(m_Client, boost::bind(&CProxy::ConnectToServer, this, boost::asio::placeholders::error));
@@ -85,6 +90,11 @@ void CProxy::SetPacketHandler(CPacketHandler* pHandler)
 
 void CProxy::ConnectToServer(const boost::system::error_code & ec)
 {
+	if (m_Callback)
+	{
+		m_Callback->set_value();
+	}
+
 	if (ec)
 	{
 		DebugPrint("[Proxy] Failed accepting client. %s\n", ec.message().c_str());
@@ -92,6 +102,16 @@ void CProxy::ConnectToServer(const boost::system::error_code & ec)
 	}
 	else
 	{
+		m_Client.set_option(boost::asio::ip::tcp::no_delay(true), m_LastError);
+
+		if (m_LastError)
+		{
+			DebugPrint("[Proxy] Error when setting no delay option for client.\n");
+			Shutdown();
+
+			return;
+		}
+
 		boost::asio::ip::tcp::resolver res(m_Service);
 		boost::asio::ip::tcp::resolver::query query(m_strServerIp, m_strServerPort);
 
@@ -113,8 +133,18 @@ void CProxy::ConnectToServer(const boost::system::error_code & ec)
 			}
 			else
 			{
-				DebugPrint("[Proxy] Connected to server.\n");
-				WaitForHandshake();
+				m_Server.set_option(boost::asio::ip::tcp::no_delay(true), m_LastError);
+
+				if (m_LastError)
+				{
+					DebugPrint("[Proxy] Error when setting no delay option for server.\n");
+					Shutdown();
+				}
+				else
+				{
+					DebugPrint("[Proxy] Connected to server.\n");
+					WaitForHandshake();
+				}
 			}
 		}
 	}
@@ -131,6 +161,11 @@ void CProxy::WaitForHandshake()
 	}
 	else
 	{
+		if (_DWORD(m_vServerData.data(), 0) != 1)
+		{
+			DebugPrint("[Proxy] Error on handshake.\n");
+		}
+
 		m_Client.send(boost::asio::buffer(m_vServerData.data(), s), 0, m_LastError);
 
 		if (m_LastError)
@@ -150,7 +185,7 @@ void CProxy::WaitForHandshake()
 
 inline bool CProxy::SERVER_SendPacket(uint8_t * pData, uint32_t size)
 {
-	DebugPrint("[Proxy -> Server] Sent new packet: %d\n", size);
+	//DebugPrint("[Proxy -> Server] Sent new packet: %d\n", size);
 
 	boost::asio::write(m_Server, boost::asio::buffer(pData, size), m_LastError);
 
@@ -183,6 +218,27 @@ bool CProxy::SERVER_SendPacket(uint8_t * pData, uint32_t size, int32_t count)
 	}
 	else
 	{
+		// Instant send.
+		uint8_t *pSaved = new uint8_t[size * count];
+
+		memcpy(pSaved, pData, size);
+
+		size_t cur;
+		for (cur = size; cur * 2 < count * size; cur *= 2)
+		{
+			memcpy(pSaved + cur, pSaved, cur);
+		}
+
+		if (count * size - cur > 0)
+		{
+			memcpy(pSaved + cur, pSaved, count * size - cur);
+		}
+
+		m_CryptManager.ClientEncrypt(pSaved, size * count, false);
+		{
+			SERVER_SendPacket(pSaved, size * count);
+		}
+		/*
 		for (int32_t i = 0; i < count; ++i)
 		{
 			m_CryptManager.ClientEncrypt(pData, size, m_vClientData.data(), false);
@@ -193,6 +249,7 @@ bool CProxy::SERVER_SendPacket(uint8_t * pData, uint32_t size, int32_t count)
 				}
 			}
 		}
+		*/
 	}
 
 	return true;
@@ -450,6 +507,24 @@ void CProxy::ParseServerPacket(uint8_t * pData, uint32_t size)
 		}
 
 		break;
+
+	case S_ACTION_STAGE:
+
+		iSendCount = m_PacketHandler->OnRecvActionStage(this, pData, size, &pSendData, &iSendSize);
+
+		break;
+
+	case S_ACTION_END:
+
+		iSendCount = m_PacketHandler->OnRecvActionStageEnd(this, pData, size, &pSendData, &iSendSize);
+
+		break;
+
+	case S_SHOW_HP:
+
+		iSendCount = m_PacketHandler->OnRecvShowHP(this, pData, size, &pSendData, &iSendSize);
+
+		break;
 	}
 
 	CLIENT_SendPacket(pSendData, iSendSize, iSendCount);
@@ -473,8 +548,17 @@ void CProxy::ParseClientPacket(uint8_t * pData, uint32_t size)
 	switch (wHeader)
 	{
 	case C_PLAYER_LOCATION:
-		m_ClientManager.OnMainControllerMove(pData, size);
+		
+		if ((iSendCount = m_PacketHandler->OnSendPlayerLocation(this, pData, size, &pSendData, &iSendSize)) > 0)
+		{
+			m_ClientManager.OnMainControllerMove(pData, size);
+		}
 
+		if (iSendCount == 0)
+		{
+			m_ClientManager.OnMainControllerMove(pData, size);
+		}
+		
 		break;
 
 	case C_HIT_USER_PROJECTILE:
@@ -955,5 +1039,11 @@ CProxy::~CProxy()
 	{
 		delete m_PacketHandler;
 		m_PacketHandler = NULL;
+	}
+
+	// Notify erase.
+	if (g_pProxyManager)
+	{
+		g_pProxyManager->RemoveProxy(this);
 	}
 }

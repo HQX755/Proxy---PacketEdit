@@ -1,24 +1,22 @@
 #include "stdafx.h"
+
 #include "Emulator.h"
+
 #include "Proxy.h"
-#include "CustomPacketHandler.h"
+#include "ProxyManager.h"
 
 CProxy* proxy;
 
 int main(int argc, char **argv)
 {
-	boost::asio::io_service service_0;
+	boost::asio::io_service service;
 
-	proxy = new CProxy(service_0, "7801");
-
-	CCustomPacketHandler *pHandler = new CCustomPacketHandler();
-
-	proxy->SetPacketHandler(pHandler);
-	proxy->AsyncWaitForClientConnection("79.110.94.211", "7801");
+	g_pProxyManager = new CProxyManager(service);
+	g_pProxyManager->StartAccept();
 
 	while (true)
 	{
-		service_0.run();
+		service.run();
 	}
 }
 
