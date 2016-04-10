@@ -1046,4 +1046,10 @@ CProxy::~CProxy()
 	{
 		g_pProxyManager->RemoveProxy(this);
 	}
+
+	if (m_Callback)
+	{
+		delete m_Callback;
+		m_Callback = NULL;
+	}
 }
